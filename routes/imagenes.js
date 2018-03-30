@@ -16,8 +16,9 @@ var express = require('express');
 // ========================
 // Express para el manejo de las rutas
 var app = express();
-var app = express();
 
+// Realizar operaciones con archivos
+var fs = require('fs');
 
 // ==================================================
 // OPERACIONES
@@ -25,14 +26,23 @@ var app = express();
 
 
 // ========================
-// TEMPLATE OPERACION
+// OPERACION PARA MOSTRAR IMAGENES
 // ========================
-app.get('/', ( req, res, next ) =>{
+app.get('/:tipo/:img', ( req, res, next ) =>{
 
-  res.status(200).json({
-    ok: true,
-    mensaje: 'Petición realizada correctamente'
-  })
+  var tipo = req.params.tipo;
+  var img = req.params.img;
+
+  var path = `./uploads/${ tipo }/${ img }`;
+
+  fs.exists( path, existe => {
+
+    if ( !existe ) {
+      path = `./assets/img/no-img.jpg`;
+    }
+
+    res.sendfile( path );
+  });
 
 });
 

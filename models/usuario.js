@@ -1,12 +1,30 @@
+// ==================================================
+//  MODELO: USUARIO
+//  Ultima actualización: 28/03/2018
+//  Autor: Jorge Macías
+// ==================================================
+
+
+// ==================================================
+// REQUIRES
+// ==================================================
 var mongoose = require('mongoose');
 var uniqueValidator = require('mongoose-unique-validator');
 
-var Schema = mongoose.Schema;
 
+// ==================================================
+// FILTROS
+// ==================================================
 var rolesValidos = {
   values: ['ADMIN_ROLE', 'USER_ROLE'],
   message: '{VALUE} no es un rol permitido'
 }
+
+
+// ==================================================
+// INICIAR SCHEMA
+// ==================================================
+var Schema = mongoose.Schema;
 
 var usuarioSchema = new Schema({
   nombre: { type: String, required: [true, 'El nombre es requerido'] },
@@ -18,8 +36,13 @@ var usuarioSchema = new Schema({
 })
 
 
-
+// ==================================================
+// APLICAR VALIDACIONES
+// ==================================================
 usuarioSchema.plugin(uniqueValidator, { message: '{PATH} debe ser único' });
 
 
+// ==================================================
+// EXPORTAR MODELO
+// ==================================================
 module.exports = mongoose.model('Usuario', usuarioSchema);
