@@ -84,7 +84,7 @@ app.put('/:tipo/:id', (req, res) => {
   var extensionArchivo = nombreImagen[ nombreImagen.length -1  ];
 
   // arreglo de extensiones permitidas
-  var extensionesPermitidas = [ 'png', 'jpg', 'gif', 'jpeg' ];
+  var extensionesPermitidas = [ 'png', 'jpg', 'gif', 'jpeg', 'PNG','JPG','GIF','JPEG' ];
 
   // Se valida si la extensión es valida
   if ( extensionesPermitidas.indexOf ( extensionArchivo ) < 0 ){
