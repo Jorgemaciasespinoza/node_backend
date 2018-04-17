@@ -1,6 +1,7 @@
 // ==================================================
 //  OPERACIONES PARA EL MANEJO DE USUARIOS
-//  Ultima actualización: 28/03/2018
+//  LOGIN.JS
+//  Ultima actualización: 16/04/2018
 //  Autor: Jorge Macías
 // ==================================================
 

@@ -1,7 +1,14 @@
-// ======================================
-//  OPERACIONES DE USUARIO
-// ======================================
+// ==================================================
+//  OPERACIONES CON USUARIOS
+//  USUARIO.JS
+//  Ultima actualización: 16/04/2018
+//  Autor: Jorge Macías
+// ==================================================
 
+
+// ==================================================
+// REQUIRES
+// ==================================================
 var express = require('express');
 var bcrypt = require('bcryptjs');
 var jwt = require('jsonwebtoken');
@@ -13,41 +20,15 @@ var mysql = require('mysql');
 // Middlewares valida token
 var mdAutenticacion = require('../middlewares/autenticacion');
 
-
+// ========================
+// EXPRESS
+// ========================
+// Express para el manejo de las rutas
 var app = express();
 
 
+
 var Usuario = require('../models/usuario');
-
-
-// ======================================
-//  OBTENER TODOS LOS USUARIOS
-// ======================================
-app.get('/', mdAutenticacion.verificaToken, ( req, res, next ) =>{
-
-  Usuario.find({}, 'nombre email img role').exec(
-    (err, usuarios)=>{
-
-      // Manda un 500 si se genera un error al obtener los usuarios
-      if (err){
-        return res.status(500).json({
-          ok: false,
-          mensaje: 'Error al obtener los usuarios',
-          errors: err
-        });
-      }
-
-      // Si todo es correcto manda los usuarios
-      res.status(200).json({
-        ok: true,
-        usuarios: usuarios
-      });
-
-  });
-  // end find
-
-});
-
 
 // ======================================
 //  CREAR USUARIO
@@ -69,32 +50,84 @@ app.post('/' ,( req, res) =>{
   // Se graba el usuario
   usuario.save( (err, usuarioGuardado) => {
 
-      // Si se genera un error
-      if (err){
-        return res.status(400).json({
-          ok: false,
-          mensaje: 'Error al crear el usuario',
-          errors: err
-        });
-      }
-
-      // Si todo es correcto
-      res.status(201).json({
-        ok: true,
-        usuario: usuarioGuardado,
-        ususarioToken: req.usuario
+    // Si se genera un error
+    if (err){
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Error al crear el usuario',
+        errors: err
       });
+    }
+
+    // Si todo es correcto
+    res.status(201).json({
+      ok: true,
+      usuario: usuarioGuardado,
+      ususarioToken: req.usuario
+    });
 
   })
   // end save
 
 });
 
+// ======================================
+//  OBTENER TODOS LOS USUARIOS
+// ======================================
+app.get('/', mdAutenticacion.verificaToken, ( req, res, next ) =>{
+
+  var desde = req.query.desde || 0;
+  desde = Number(desde);
+
+  Usuario.find({}, 'nombre email img role google')
+    .skip(desde)
+    .limit(5)
+    .exec(
+    (err, usuarios)=>{
+
+      // Manda un 500 si se genera un error al obtener los usuarios
+      if (err){
+        return res.status(500).json({
+          ok: false,
+          mensaje: 'Error al obtener los usuarios',
+          errors: err
+        });
+      }
+
+      Usuario.count({}, (err, count) =>{
+
+        // Si sucede algún error al obtener la cantidad de usuarios
+        if (err){
+          return res.status(500).json({
+            ok: false,
+            mensaje: 'Error al obtener el conteo de los usuarios',
+            errors: err
+          });
+        }
+
+        // Si todo es correcto manda los usuarios
+        res.status(200).json({
+          ok: true,
+          usuarios: usuarios,
+          total: count,
+          posicion: desde+usuarios.length
+        });
+
+      });
+
+
+  });
+  // end find
+
+});
+
+
+
 
 // ======================================
 //  ACTUALIZAR USUARIO
 // ======================================
-app.put('/:id', mdAutenticacion.verificaToken,  ( req, res) =>{
+app.put('/:id', [mdAutenticacion.verificaToken, mdAutenticacion.verificaAdminRole_Mismo_Usuario],  ( req, res) =>{
 
   // Se obtiene el id del path
   var id = req.params.id;
@@ -136,6 +169,10 @@ app.put('/:id', mdAutenticacion.verificaToken,  ( req, res) =>{
     usuario.nombre  = body.nombre;
     usuario.email   = body.email;
     usuario.role    = body.role;
+
+    if (body.password != null){
+      usuario.password    = bcrypt.hashSync(body.password, 10);
+    }
 
     // Guarda los cambios
     usuario.save( (err, usuarioGuardado ) => {
@@ -253,8 +290,34 @@ app.get('/mysql', ( req, res) =>{
    }
 );
 connection.end();
+});
 
+// ======================================
+//  OBTENER TODOS LOS USUARIOS
+// ======================================
+app.get('/busqueda/:usuario',mdAutenticacion.verificaToken, ( req, res) =>{
+  var busqueda = req.params.usuario;
 
+  var regex = new RegExp( busqueda, 'i' );
+
+  Usuario.find({ nombre: regex }, (err, usuarios) => {
+
+    // Si ocurre algunn error al buscar el usuario
+    if (err){
+      return res.status(500).json({
+        ok: false,
+        mensaje: 'Error al buscar el usuario',
+        errors: err
+      });
+    }
+
+    res.status(200).json({
+      ok: true,
+      usuarios: usuarios,
+      posicion: usuarios.length
+    });
+
+  });
 
 
 });

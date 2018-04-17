@@ -1,6 +1,7 @@
 // ==================================================
-//  DESCRIBE
-//  Ultima actualización: 28/03/2018
+//  OPERACINES PARA MOSTRAR IMAGENES
+//  IMAGENES.JS
+//  Ultima actualización: 16/04/2018
 //  Autor: Jorge Macías
 // ==================================================
 
@@ -17,7 +18,7 @@ var express = require('express');
 // Express para el manejo de las rutas
 var app = express();
 
-// Realizar operaciones con archivos
+// File system para realizar operaciones con archivos
 var fs = require('fs');
 
 // ==================================================
