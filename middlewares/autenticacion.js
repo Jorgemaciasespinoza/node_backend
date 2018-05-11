@@ -29,14 +29,15 @@ exports.verificaToken = function ( req, res, next ){
 
       return res.status(401).json({
         ok: false,
-        mensaje: 'La sesión expiro o no está autorizado para utilizar el recurso solicitado',
-        errors: {message: err, code: '601'}
+        mensajeUsuario: 'La sesión expiro o no está autorizado para utilizar el recurso solicitado',
+        MensajeTecnico: {errors: {error: err, code: '601'}}
       });
 
     }
 
-    // se enviar el usuario en la solicitud
+    // se enviar el usuario y el menu en la solicitud
     req.usuario = decoded.usuario;
+    req.menu = decoded.menu;
 
     // Se invoca al next para que continue con las demas operaciones
     next();
@@ -51,7 +52,7 @@ exports.verificaAdminRole = function ( req, res, next ){
 
   // Se obtiene el usuario que hace la solicitud
   var usuario = req.usuario;
-
+  console.log(usuario);
   // Si es un administracion
   if (usuario.role === 'ADMIN_ROLE') {
     next();
@@ -80,8 +81,10 @@ exports.verificaAdminRole_Mismo_Usuario = function ( req, res, next ){
   //Se obtiene el usuario a actualizar
   var id = req.params.id;
 
+  console.log(usuario.rol+'-'+usuario.pk_usuario+'-'+id);
+
   // Si es un usuario administrador o si mismo se puede actualizar
-  if (usuario.role === 'ADMIN_ROLE' || usuario._id === id) {
+  if (usuario.rol === 'ADMIN' || usuario.pk_usuario === id) {
     next();
     return;
   }

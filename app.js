@@ -7,7 +7,6 @@
 
 // Requires
 var express = require('express')
-var mongoose = require('mongoose')
 var bodyParser = require('body-parser')
 
 
@@ -37,13 +36,6 @@ var loginRoutes = require('./routes/login');
 var uploadRoutes = require('./routes/upload');
 var imagenesRoutes = require('./routes/imagenes');
 
-
-// Conexion a base de datos
-mongoose.connection.openUri('mongodb://localhost:27017/angularDB', ( err, res ) =>{
-  if (err) throw err;
-
-  console.log('Mongo server : \x1b[32m%s\x1b[0m', 'online');
-})
 
 // Rutas
 app.use('/usuario', usuarioRoutes );

@@ -20,6 +20,9 @@ var fileUpload = require('express-fileupload');
 // Realizar operaciones con archivos
 var fs = require('fs');
 
+// Pool de conexiones
+var pool = require('../config/conexion_db')
+
 // ========================
 // EXPRESS
 // ========================
@@ -55,8 +58,9 @@ app.put('/:tipo/:id', (req, res) => {
 
     return res.status(400).json({
       ok: false,
-      mensaje: 'El tipo no es válido',
-      errors: { message: 'El tipo no es valido' }
+      mensajeUsuario: 'La clasificación de la imagen es incorrecta.',
+      mensajeTecnico: {errors: {error: 'El tipo es inválido.'}},
+      code: '2000'
     });
 
   }
@@ -69,8 +73,9 @@ app.put('/:tipo/:id', (req, res) => {
 
     return res.status(400).json({
       ok: false,
-      mensaje: 'No se seleciono ningún archivo',
-      errors: { message: 'Debe seleccionar un archivo' }
+      mensajeUsuario: 'No se seleciono ningún archivo.',
+      mensajeTecnico: { errors: {error: 'Debe subir un archivo.'} },
+      code: '2001'
     });
 
   }
@@ -92,8 +97,9 @@ app.put('/:tipo/:id', (req, res) => {
 
     return res.status(400).json({
       ok: false,
-      mensaje: 'Extensión no válida',
-      errors: { message: 'Las extenciones válidas son: ' + extensionesPermitidas.join(', ') }
+      mensajeUsuario: 'La extensión de la imagen no es válida.',
+      mensajeTecnico: { errors: {error: 'Las extenciones válidas son: ' + extensionesPermitidas.join(', ') } },
+      code: '2002'
     });
 
   }
@@ -113,8 +119,9 @@ app.put('/:tipo/:id', (req, res) => {
 
       return res.status(500).json({
         ok: false,
-        mensaje: 'Error al mover archivo',
-        errors: err
+        mensajeUsuario: 'Error al almacenar imagen.',
+        mensajeTecnico: {errors: {error: 'No se pudo mover imagen al directorio.', descripcion: err }},
+        code: '2003'
       });
 
     }
@@ -139,52 +146,83 @@ function subirPorTipo( tipo, id, nombreArchivo, res ){
 
   if ( tipo === 'usuarios' ){
 
-    Usuario.findById(id, (err, usuario) => {
+    // Se obtiene un hilo de la conexion
+    pool.getConnection( (err,conexion) => {
 
-      if ( err ){
-
-        return res.status(400).json({
+      if (err) {
+        return res.status(500).json({
           ok: false,
-          mensaje: 'Error al encontrar usuario',
-          errors: err
+          mensajeUsuario: 'Error al establecer comunicación con el servidor de datos, intente más tarde.',
+          mensajeTecnico: { errors: err},
+          code: '2004'
         });
-
       }
 
-      // Revisar si ya tiene una imagen asignada
-      var pathAnterior = './uploads/usuarios/' + usuario.img;
+      var query = conexion.query("  select "
+          +"u.pk_usuario, "
+          +"u.nombre, "
+          +"u.email, "
+          +"u.imagen, "
+          +"u.google_auth "
+        +"from "
+          +"ct_usuarios u where u.activo ='1' and u.pk_usuario='"+id+"'",
+          (error, results, field) => {
 
-      if ( fs.existsSync( pathAnterior )){
-        fs.unlink( pathAnterior ); // Elimina la imagen anterior
-      }
+          if (error){
+            return res.status(500).json({
+              ok: false,
+              mensajeUsuario: 'Error en el proceso de lectura de información, intente más tarde.',
+              mensajeTecnico: { errors: error },
+              code: '2005'
+            });
+          }
 
-      // Guardar la nueva imagen
-      usuario.img = nombreArchivo;
+          if (results.length === 0){
+            return res.status(400).json({
+              ok: false,
+              mensajeUsuario: 'Usuario con id: '+ id + ' no existe.',
+              mensajeTecnico: { errors: {error: 'No existe un usuario especificado' } },
+              code: '2006'
+            });
+          }
 
-      usuario.save( ( err, usuarioActualizado ) => {
+          // Revisar si ya tiene una imagen asignada
+          var pathAnterior = './uploads/usuarios/' + results[0].imagen;
 
-        // Si ocurre un arror al grabar usuario
-        if ( err ){
+          if ( fs.existsSync( pathAnterior )){
+            fs.unlink( pathAnterior ); // Elimina la imagen anterior
+          }
 
-          return res.status(500).json({
-            ok: false,
-            mensaje: 'Error al actualiza la imagen en base dartos',
-            errors: err
+          var sql = "UPDATE ct_usuarios SET imagen='"+nombreArchivo+"' WHERE pk_usuario = '"+ id +"'";
+          conexion.query(sql, (err, result) =>{
+
+            // Si ocurre algun error al actualizar el usuario
+            if (err) {
+              return res.status(500).json({
+                ok: false,
+                mensajeUsuario: 'Error al actualizar la imagen, intente más tarde.',
+                mensajeTecnico: {errors: err },
+                code: '2007'
+              });
+            }
+
+            // Si todo sale bien
+            return res.status(200).json({
+              ok: true,
+              mensaje: 'Imagen grabada',
+              imagen: nombreArchivo
+            });
+
           });
+          // end UPDATE
 
-        }
-
-        // Si todo sale bien
-        return res.status(200).json({
-          ok: true,
-          mensaje: 'Imagen grabada',
-          usuario: usuarioActualizado
         });
+        // end qry
 
+        // Libera la conexion
+        conexion.release();
       });
-      // end save
-    });
-    // end findById
+      // end pool
   }
   // end if usuario
 }
